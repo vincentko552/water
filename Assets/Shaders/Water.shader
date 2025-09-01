@@ -7,11 +7,12 @@ Shader "Custom/Water"
         [MainColor] _Diffuse("Diffuse", Color) = (1, 1, 1, 1)
         [MainColor] _Specular("Specular", Color) = (1, 1, 1, 1)
         [MainTexture] _BaseMap("Base Map", 2D) = "white"
+        _LocalAccel("Local Acceleration", Float) = 9.8
     }
 
     SubShader
     {
-        Tags { "RenderType" = "Transparent" "RenderPipeline" = "UniversalPipeline" }
+        Tags { "RenderType" = "Opaque" "RenderPipeline" = "UniversalPipeline" }
 
         Pass
         {
@@ -33,14 +34,20 @@ Shader "Custom/Water"
                 float4 positionHCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
             };
-
+            
             TEXTURE2D(_BaseMap);
             SAMPLER(sampler_BaseMap);
-
+            
             CBUFFER_START(UnityPerMaterial)
+                float _LocalAccel;
                 half4 _BaseColor;
                 float4 _BaseMap_ST;
             CBUFFER_END
+            
+            float omega(int n, int m) 
+            {
+                return sqrt(_LocalAccel * sqrt(1));
+            }
 
             Varyings vert(Attributes IN)
             {
