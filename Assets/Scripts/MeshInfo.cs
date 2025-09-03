@@ -1,40 +1,79 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MeshInfo : MonoBehaviour
 {
-    private Mesh mesh;
-    private Material material;
+    private Mesh _mesh;
+    private Material _material;
+
+    public bool update = false;
+    public float epsilon = 0.0001f;
 
     // N = x axis, M = z axis
-    public int N;
-    public int M;
-    public float Lx;
-    public float Lz;
+    private int N;
+    private int M;
+    private float Lx;
+    private float Lz;
 
     void Start()
     {
-        material = GetComponent<Renderer>().material;
-        mesh = GetComponent<MeshFilter>().mesh;
-        float currentColumnPosZ = mesh.vertices[0].z;
-        M = 1;
-        N = 1;
-        foreach (Vector3 vertex in mesh.vertices[1..mesh.vertices.Length])
+        UpdateShader();
+    }
+
+    private void Update()
+    {
+        if (update)
         {
-            // New Line
-            if (currentColumnPosZ != vertex.z)
-            {
-                N++;
-                currentColumnPosZ = vertex.z;
-            }
-            // Only track width on first line
-            else if (N == 1)
-                M++;
+            UpdateShader();
+            update = false;
+        }
+    }
+
+    public void UpdateShader()
+    {
+        _material = GetComponent<Renderer>().material;
+        _mesh = GetComponent<MeshFilter>().mesh;
+
+        HashSet<float> uniqueZs = new HashSet<float>();
+        HashSet<float> uniqueXs = new HashSet<float>();
+
+        foreach (Vector3 vertex in _mesh.vertices)
+        {
+            bool foundZ = false, foundX = false;
+            foreach (float z in uniqueZs)
+                if (AlmostEqual(z, vertex.z))
+                {
+                    foundZ = true;
+                    break;
+                }
+            
+            foreach (float x in uniqueXs)
+                if (AlmostEqual(x, vertex.x))
+                {
+                    foundX = true;
+                    break;
+                }
+
+            if (!foundZ) uniqueZs.Add(vertex.z);
+            if (!foundX) uniqueXs.Add(vertex.x);
         }
 
-        Lx = mesh.bounds.min.x - mesh.bounds.max.x;
-        Lz = mesh.bounds.min.z - mesh.bounds.max.z;
+        N = uniqueZs.Count;
+        M = uniqueXs.Count;
 
-        // TODO
-        // material.SetFloat("name", 0);
+        Lx = _mesh.bounds.max.x - _mesh.bounds.min.x;
+        Lz = _mesh.bounds.max.z - _mesh.bounds.min.z;
+
+        _material.SetFloat("_Lx", Lx);
+        _material.SetFloat("_Lz", Lz);
+        _material.SetFloat("_N", N);
+        _material.SetFloat("_M", M);
+    }
+
+
+    public bool AlmostEqual(float first, float second)
+    {
+        return Math.Abs(first - second) <= epsilon;
     }
 }
