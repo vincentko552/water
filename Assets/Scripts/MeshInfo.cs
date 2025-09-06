@@ -64,6 +64,8 @@ public class MeshInfo : MonoBehaviour
 
         Lx = _mesh.bounds.max.x - _mesh.bounds.min.x;
         Lz = _mesh.bounds.max.z - _mesh.bounds.min.z;
+        // Lx *= transform.localScale.x;
+        // Lz *= transform.localScale.z;
 
         _material.SetFloat("_Lx", Lx);
         _material.SetFloat("_Lz", Lz);
