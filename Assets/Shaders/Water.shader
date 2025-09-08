@@ -4,12 +4,15 @@ Shader "Custom/Water"
     {
         // Graphic Attributes
         [MainColor] _BaseColor("Base Color", Color) = (1, 1, 1, 1)
-        [MainColor] _Ambient("Ambient", Color) = (1, 1, 1, 1)
-        [MainColor] _Diffuse("Diffuse", Color) = (1, 1, 1, 1)
-        [MainColor] _Specular("Specular", Color) = (1, 1, 1, 1)
-        _LightDirection("Light Direction", Vector) = (0, -1, 0)
+        [MainColor] _Ambient("Ambient", Color) = (1, 1, 1)
+        [MainColor] _Diffuse("Diffuse", Color) = (1, 1, 1)
+        [MainColor] _Specular("Specular", Color) = (1, 1, 1)
         _LightPosition("Light Position", Vector) = (0, 50, 0)
+        _LightIntensity("Light Intensity", float) = 1.0
+        _LightColor("Light Color", Color) = (1, 1, 1)
+        _SpecularShininess("Specular Shininess", float) = 1.0
         _UseCompute("Use Compute?", int) = 0
+        _CameraPosition("CameraPosition", Vector) = (0, 0, 0)
         
         // FFT Attributes
         [MainTexture] _RealMap("Real Map", 2D) = "white"
@@ -55,17 +58,12 @@ Shader "Custom/Water"
             {
                 float4 positionHCS : SV_POSITION;
                 float2 uv : TEXCOORD0;
-                float3 normal : NORMAL;
                 float height : TEXCOORD1;
+                float3 N : TEXCOORD2;
+                float3 V : TEXCOORD3;
+                float3 L : TEXCOORD4;
             };
 
-            struct DFT_Result
-            {
-                float2 h;
-                float2 D;
-                float2 n;
-            };
-            
             TEXTURE2D(_RealMap);
             TEXTURE2D(_ImaginaryMap);
             TEXTURE2D(_FtResult);
@@ -85,10 +83,18 @@ Shader "Custom/Water"
                 int _M;
                 vector _WindInformation;
                 float _YScale;
-                vector _LightDirection;
                 float _l;
                 float _TimeRepeat;
                 float _PhaseMult;
+            
+                float3 _Ambient;
+                float3 _Diffuse;
+                float3 _Specular;
+                float3 _LightPosition;
+                float _LightIntensity;
+                float3 _LightColor;
+                float _SpecularShininess;
+                float3 _CameraPosition;
             CBUFFER_END
 
             float2 complex_add(float2 c1, float2 c2)
@@ -124,6 +130,7 @@ Shader "Custom/Water"
             Varyings vert(Attributes IN)
             {
                 Varyings OUT;
+                float2 displacement = 0;
                 float y_offset = 0;
                 float2 gradient = float2(0.0f, 0.0f);
                 for (int n_prime = 0; n_prime < _N; n_prime++)
@@ -136,22 +143,38 @@ Shader "Custom/Water"
                        float c2 = IN.positionOS.z * k.y;
                        float2 exp = complex_exp(c1 + c2);
                        float2 result = complex_mult(h_tilde_prime, exp);
+                       // displacement += (k / length(k)) * result.x;
                        y_offset += result.x;
                        gradient += k * result;
                    }
                 }
+                displacement = float2(-displacement.y, displacement.x) / 1000;
                 gradient = float2(gradient.y, -gradient.x);
-                OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz + float3(0, y_offset * _YScale, 0));
+                OUT.positionHCS = TransformObjectToHClip(IN.positionOS.xyz + float3(displacement.x, y_offset * _YScale, displacement.y));
                 OUT.uv = TRANSFORM_TEX(IN.uv, _BaseMap);
-                OUT.normal = float3(-gradient.x, 1, -gradient.y);
+                OUT.N = float3(-gradient.x, 1, -gradient.y);
+                OUT.L = _LightPosition - IN.positionOS.xyz;
+                OUT.V = _CameraPosition - IN.positionOS.xyz;
                 OUT.height = y_offset;
                 return OUT;
             }
 
             half4 frag(Varyings IN) : SV_Target
             {
-                half4 color = IN.height * _BaseColor;
+                half4 color = half4(IN.height * _Ambient, 1.0);
                 return color;
+                float distance_to_light = length(IN.L);
+                IN.N = normalize(IN.N);
+                IN.V = normalize(IN.V);
+                IN.L = normalize(IN.L);
+
+                float lambert = max(dot(IN.L, IN.N), 0.0);
+                float3 H = normalize(IN.L + IN.V);
+                float3 light_contribution = _LightColor * _LightIntensity / (distance_to_light * distance_to_light);
+                float specular = pow(max(dot(H, IN.N), 0.0), _SpecularShininess);
+                
+                // float3 color = _Ambient + _Diffuse * lambert * light_contribution + _Specular * specular * light_contribution;
+                // return float4(color, 1.0);
             }
             ENDHLSL
         }

@@ -3,30 +3,32 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using UnityEngine.UI;
+// ReSharper disable Unity.PreferAddressByIdToGraphicsParams
 
 public class Preprocess : MonoBehaviour
 {
     [SerializeField] 
     private ComputeShader preprocessFtShader;
+    [SerializeField] 
+    private Showcase showcase;
 
     public RenderTexture ftTexture;
 
-    public Texture2D _RealMap;
-    public Texture2D _ImaginaryMap;
-    public bool _UseCompute = true;
-    public float _LocalAccel = 9.8f;
-    public Vector4 _BaseColor = new Color(0.4018867f, 0.5270109f, 0.5999999f, 1);
+    public Texture2D gaussianNoise;
+    public uint noiseSeed = 1;
+    public bool useCompute = true;
+    public float localAccel = 9.8f;
+    public Vector4 baseColor = new Color(0.4018867f, 0.5270109f, 0.5999999f, 1);
     // N = x axis, M = z axis
-    public float _Lx = 0;
-    public float _Lz = 0;
-    public int _N = 0;
-    public int _M = 0;
-    public Vector4 _WindInformation = new Vector4(1, 0, 30, 0.0005f);
-    public Vector3 _LightDirection = new Vector3(0, -1, 0);
-    public float _l = 0.001f;
-    public float _TimeRepeat = 100.0f;
-    public float _PhaseMult = 100.0f;
-    public float _Slowdown = 1.0f;
+    public float lx = 0;
+    public float lz = 0;
+    public int n = 0;
+    public int m = 0;
+    public Vector4 windInformation = new Vector4(1, 0, 30, 0.0005f);
+    public Vector3 lightDirection = new Vector3(0, -1, 0);
+    public float l = 0.001f;
+    public float timeRepeat = 100.0f;
+    public float slowdown = 1.0f;
     
     private Mesh _mesh;
     private Material _material;
@@ -34,12 +36,6 @@ public class Preprocess : MonoBehaviour
     public bool update = false;
     public float epsilon = 0.0001f;
 
-    void Awake()
-    {
-        _RealMap = Resources.Load<Texture2D>("real");
-        _ImaginaryMap = Resources.Load<Texture2D>("imaginary");
-    }
-    
     void Start()
     {
         UpdateShader();
@@ -52,12 +48,13 @@ public class Preprocess : MonoBehaviour
             UpdateShader();
             update = false;
         }
-        preprocessFtShader.SetFloat("_Time", Time.time / _Slowdown);
-        preprocessFtShader.Dispatch(0, _N / 8, 1, _M / 8);
+        preprocessFtShader.SetFloat("_Time", Time.time / slowdown);
+        preprocessFtShader.Dispatch(0, n / 8, 1, m / 8);
+        _material.SetVector("_CameraPosition", Camera.main.transform.position);
         _material.SetTexture("_FtResult", ftTexture);
     }
 
-    public void UpdateShader()
+    private void UpdateShader()
     {
         _material = GetComponent<Renderer>().material;
         _mesh = GetComponent<MeshFilter>().mesh;
@@ -86,20 +83,20 @@ public class Preprocess : MonoBehaviour
             if (!foundX) uniqueXs.Add(vertex.x);
         }
 
-        _N = uniqueZs.Count - 1;
-        _M = uniqueXs.Count - 1;
+        n = uniqueXs.Count - 1;
+        m = uniqueZs.Count - 1;
 
-        _Lx = _mesh.bounds.max.x - _mesh.bounds.min.x;
-        _Lz = _mesh.bounds.max.z - _mesh.bounds.min.z;
-        // Lx *= transform.localScale.x;
-        // Lz *= transform.localScale.z;
+        RegenerateNoise();
 
-        _material.SetFloat("_Lx", _Lx);
-        _material.SetFloat("_Lz", _Lz);
-        _material.SetFloat("_N", _N);
-        _material.SetFloat("_M", _M);
+        lx = _mesh.bounds.max.x - _mesh.bounds.min.x;
+        lz = _mesh.bounds.max.z - _mesh.bounds.min.z;
+
+        _material.SetFloat("_Lx", lx);
+        _material.SetFloat("_Lz", lz);
+        _material.SetFloat("_N", n);
+        _material.SetFloat("_M", m);
         
-        ftTexture = new RenderTexture(_N, _M, 0, RenderTextureFormat.ARGBFloat);
+        ftTexture = new RenderTexture(n, m, 0, RenderTextureFormat.ARGBFloat);
         ftTexture.useMipMap = false;
         ftTexture.autoGenerateMips = false;
         ftTexture.enableRandomWrite = true;
@@ -110,29 +107,35 @@ public class Preprocess : MonoBehaviour
 
     public void OnValidate()
     {
-        if (preprocessFtShader == null || _RealMap == null || _ImaginaryMap == null)
+        if (preprocessFtShader == null || n <= 0)
             return;
         
-        preprocessFtShader.SetTexture(0, "_RealMap", _RealMap);
-        preprocessFtShader.SetTexture(0, "_ImaginaryMap", _ImaginaryMap);
-        preprocessFtShader.SetFloat("_LocalAccel", _LocalAccel);
-        preprocessFtShader.SetVector("_BaseColor", _BaseColor);
-        preprocessFtShader.SetFloat("_Lx", _Lx);
-        preprocessFtShader.SetFloat("_Lz", _Lz);
-        preprocessFtShader.SetFloat("_N", _N);
-        preprocessFtShader.SetFloat("_M", _M);
-        preprocessFtShader.SetVector("_WindInformation", _WindInformation);
-        preprocessFtShader.SetVector("_LightDirection", _LightDirection);
-        preprocessFtShader.SetFloat("_l", _l);
-        preprocessFtShader.SetFloat("_TimeRepeat", _TimeRepeat);
-        preprocessFtShader.SetFloat("_PhaseMult", _PhaseMult);
+        RegenerateNoise();
+        
+        preprocessFtShader.SetTexture(0, "_Noise", gaussianNoise);
+        preprocessFtShader.SetFloat("_LocalAccel", localAccel);
+        preprocessFtShader.SetVector("_BaseColor", baseColor);
+        preprocessFtShader.SetFloat("_Lx", lx);
+        preprocessFtShader.SetFloat("_Lz", lz);
+        preprocessFtShader.SetFloat("_N", n);
+        preprocessFtShader.SetFloat("_M", m);
+        preprocessFtShader.SetVector("_WindInformation", windInformation);
+        preprocessFtShader.SetVector("_LightDirection", lightDirection);
+        preprocessFtShader.SetFloat("_l", l);
+        preprocessFtShader.SetFloat("_TimeRepeat", timeRepeat);
         preprocessFtShader.SetTexture(0, "Result", ftTexture);
         
-        _material.SetInt("_UseCompute", _UseCompute ? 1 : 0);
+        _material.SetInt("_UseCompute", useCompute ? 1 : 0);
     }
 
     public bool AlmostEqual(float first, float second)
     {
         return Math.Abs(first - second) <= epsilon;
+    }
+
+    private void RegenerateNoise()
+    {
+        gaussianNoise = GenerateNoise.GenerateGaussianNoise(noiseSeed, n);
+        showcase.ChangeShowcase(0, "Noise", gaussianNoise);
     }
 }

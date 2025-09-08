@@ -2,8 +2,7 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel CSMain
 
-Texture2D<float4> _RealMap;
-Texture2D<float4> _ImaginaryMap;
+Texture2D<float4> _Noise;
 RWTexture2D<float4> Result;
 
 SamplerState SamplerLinearClamp;
@@ -19,7 +18,6 @@ vector _WindInformation;
 vector _LightDirection;
 float _l;
 float _TimeRepeat;
-float _PhaseMult;
 
 //----- HELPER FUNCTIONS -----
 float2 complex_add(float2 c1, float2 c2)
@@ -90,8 +88,9 @@ float phillips(int n_prime, int m_prime)
 float2 basis_dft(int n_prime, int m_prime)
 {
     int2 coord = int2(n_prime, m_prime);
-    float real_sample = _RealMap.Load(int3(coord, 0)).r;
-    float imaginary_sample = _ImaginaryMap.Load(int3(coord, 0)).r;
+    float4 noise = _Noise.Load(int3(coord, 0));
+    float real_sample = noise.r;
+    float imaginary_sample = noise.g;
 
     return (1 / sqrt(2.0)) * float2(real_sample, imaginary_sample) * sqrt(phillips(n_prime, m_prime));
 }
@@ -101,12 +100,11 @@ float2 dft(int n_prime, int m_prime, float time)
     int n_wrapped = wrap_index(n_prime, _N);
     int m_wrapped = wrap_index(m_prime, _M);
 
-    float phase = _RealMap.Load(int3(n_wrapped, m_wrapped, 0)).g;
     int n_conj_wrapped = wrap_index(-n_prime, _N);
     int m_conj_wrapped = wrap_index(-m_prime, _M);
     float2 basis = basis_dft(n_wrapped, m_wrapped);
     float2 basis_conjugate = complex_conjugate(basis_dft(n_conj_wrapped, m_conj_wrapped));
-    float2 exp1 = complex_exp(omega(n_wrapped, m_wrapped) * time + phase * _PhaseMult);
+    float2 exp1 = complex_exp(omega(n_wrapped, m_wrapped) * time);
     float2 exp2 = complex_conjugate(exp1);
     return complex_add(complex_mult(basis, exp1), complex_mult(basis_conjugate, exp2));
 }
