@@ -1,0 +1,33 @@
+#pragma kernel CSMain
+#include "Assets/Shaders/Common/common.hlsl"
+
+Texture2D<float4> basis;
+RWTexture2D<float4> result;
+
+float time;
+float g;
+float lx;
+int n;
+float4 wind_information;
+float l;
+float T;
+
+float2 dft(int n_prime, int m_prime, float time)
+{
+    int n_wrapped = wrap_index(n_prime, n);
+    int m_wrapped = wrap_index(m_prime, n);
+    int n_conj_wrapped = wrap_index(-n_prime, n);
+    int m_conj_wrapped = wrap_index(-m_prime, n);
+    
+    float2 ft_basis = basis.Load(int3(n_prime, m_prime, 0)).rg;
+    float2 basis_conjugate = complex_conjugate(basis.Load(int3(n_conj_wrapped, m_conj_wrapped, 0)).rg);
+    float2 exp1 = complex_exp(omega(n_wrapped, m_wrapped, n, lx, g, T) * time);
+    float2 exp2 = complex_conjugate(exp1);
+    return complex_add(complex_mult(ft_basis, exp1), complex_mult(basis_conjugate, exp2));
+}
+
+[numthreads(8,1,8)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    result[id.xz] = float4(dft(id.x, id.z, time), 0.0, 1.0);
+}

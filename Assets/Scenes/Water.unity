@@ -2186,13 +2186,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc267d6a5b280294f88e474e477c245e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::MeshInfo
-  preprocessFtShader: {fileID: 7200000, guid: 7dc90c88eea4149719421c87883a269c, type: 3}
+  calculateDftBasisShader: {fileID: 7200000, guid: c57a7ed4a6bf9bc7fbc040e60432c409, type: 3}
+  calculateDftShader: {fileID: 7200000, guid: 7dc90c88eea4149719421c87883a269c, type: 3}
   showcase: {fileID: 1488620687}
-  ftTexture: {fileID: 0}
   gaussianNoise: {fileID: 0}
   noiseSeed: 1
   useCompute: 1
-  localAccel: 9.8
+  g: 9.8
   baseColor: {x: 0.4018867, y: 0.5270109, z: 0.5999999, w: 1}
   lx: 0
   lz: 0
@@ -2201,8 +2201,8 @@ MonoBehaviour:
   windInformation: {x: 1, y: 0, z: 30, w: 0.0005}
   lightDirection: {x: 0, y: -1, z: 0}
   l: 0.001
-  timeRepeat: 100
-  slowdown: 1
+  T: 100
+  slowdown: 20
   update: 0
   epsilon: 0.0001
 --- !u!1001 &1730207235

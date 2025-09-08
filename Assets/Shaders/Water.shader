@@ -11,7 +11,6 @@ Shader "Custom/Water"
         _LightIntensity("Light Intensity", float) = 1.0
         _LightColor("Light Color", Color) = (1, 1, 1)
         _SpecularShininess("Specular Shininess", float) = 1.0
-        _UseCompute("Use Compute?", int) = 0
         _CameraPosition("CameraPosition", Vector) = (0, 0, 0)
         
         // FFT Attributes
