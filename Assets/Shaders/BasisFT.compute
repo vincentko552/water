@@ -34,5 +34,5 @@ float2 basis_dft(int n_prime, int m_prime)
 [numthreads(8,1,8)]
 void CSMain(uint3 id : SV_DispatchThreadID)
 {
-    result[int2((id.x + n/2) % n, (id.z + n/2) % n)] = float4(basis_dft(id.x, id.z), 0, 1);
+    result[id.xz] = float4(basis_dft(id.x, id.z), 0.0, 1.0);
 }

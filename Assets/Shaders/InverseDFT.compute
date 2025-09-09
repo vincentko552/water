@@ -1,0 +1,35 @@
+#pragma kernel CSMain
+#include "Assets/Shaders/Common/common.hlsl"
+
+Texture2D<float4> ft_result;
+RWTexture2D<float4> result;
+
+float lambda;
+float lx;
+int n;
+
+[numthreads(8,1,8)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    float y_offset = 0;
+    float2 displacement = 0;
+    for (int n_prime = 0; n_prime < n; n_prime++)
+    {
+        for (int m_prime = 0; m_prime < n; m_prime++)
+        {
+            float2 h_tilde_prime = ft_result.Load(int3(n_prime, m_prime, 0)).rg;
+            float2 k_hat = float2(wave_vector(n_prime, m_prime, n, n, lx, lx));
+            float k = length(k_hat);
+            if (k == 0)
+                continue;
+
+            float2 world_pos = float2(id.x, id.z) * (lx / n);
+            float2 exp = complex_exp(-dot(world_pos, k_hat));
+            float2 offset_result = complex_mult(h_tilde_prime, exp);
+            y_offset += offset_result.x;
+            displacement += (k_hat / length(k_hat)) * -offset_result.y;
+        }
+    }
+
+    result[id.xz] = float4(y_offset, displacement * lambda, 1.0f);
+}

@@ -13,19 +13,6 @@ int wrap_index(int i, int size)
     return (i % size + size) % size;
 }
 
-float calculate_k(int n, int N, float Lx)
-{
-    return (2 * pi * n - pi * N) / Lx;
-}
-
-float omega(int n_prime, int m_prime, int size, float length, float g, float time_repeat) 
-{
-    float w_0 = 2.0f * pi / time_repeat;
-    float k_x = calculate_k(n_prime, size, length);
-    float k_z = calculate_k(m_prime, size, length);
-    return round(sqrt(g * sqrt(k_x * k_x + k_z * k_z)) / w_0) * w_0;
-}
-
 float2 wave_vector(uint i, uint j, int N, int M, float Lx, float Lz)
 {
     int ix = (i <= N / 2) ? i : i - N;
@@ -33,6 +20,13 @@ float2 wave_vector(uint i, uint j, int N, int M, float Lx, float Lz)
     float kx = 2.0 * pi * ix / max(Lx, 1e-4);
     float kz = 2.0 * pi * jz / max(Lz, 1e-4);
     return float2(kx, kz);
+}
+
+float omega(int n_prime, int m_prime, int size, float length, float g, float time_repeat) 
+{
+    float w_0 = 2.0f * pi / time_repeat;
+    float2 k = wave_vector(n_prime, m_prime, size, size, length, length);
+    return round(sqrt(g * sqrt(k.x * k.x + k.y * k.y)) / w_0) * w_0;
 }
 
 float2 complex_add(float2 c1, float2 c2)

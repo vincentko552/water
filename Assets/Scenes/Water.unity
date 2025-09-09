@@ -841,7 +841,6 @@ GameObject:
   - component: {fileID: 618951422}
   - component: {fileID: 618951421}
   - component: {fileID: 618951420}
-  - component: {fileID: 618951423}
   m_Layer: 5
   m_Name: Button
   m_TagString: Untagged
@@ -963,18 +962,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 618951418}
   m_CullTransparentMesh: 1
---- !u!114 &618951423
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 618951418}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: dba173add8b564a73a5181197e0bb751, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ToggleShowButton
 --- !u!1001 &625309571
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2188,16 +2175,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::MeshInfo
   calculateDftBasisShader: {fileID: 7200000, guid: c57a7ed4a6bf9bc7fbc040e60432c409, type: 3}
   calculateDftShader: {fileID: 7200000, guid: 7dc90c88eea4149719421c87883a269c, type: 3}
+  calculateIftShader: {fileID: 7200000, guid: 2b631ef6a3222d841a1dda471cea28a9, type: 3}
   showcase: {fileID: 1488620687}
-  gaussianNoise: {fileID: 0}
   noiseSeed: 1
   useCompute: 1
   g: 9.8
   baseColor: {x: 0.4018867, y: 0.5270109, z: 0.5999999, w: 1}
   lx: 0
-  lz: 0
   n: 0
-  m: 0
   windInformation: {x: 1, y: 0, z: 30, w: 0.0005}
   lightDirection: {x: 0, y: -1, z: 0}
   l: 0.001
@@ -2382,6 +2367,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: b4cd832ca76e5fdc4a6d527a4c003c7f, type: 2}
+    - target: {fileID: -5754084199372789682, guid: 0ec0ef116214006a297467b6a9194810, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: -462981019419857548, guid: 0ec0ef116214006a297467b6a9194810, type: 3}
     - target: {fileID: 919132149155446097, guid: 0ec0ef116214006a297467b6a9194810, type: 3}
       propertyPath: m_Name
       value: plane

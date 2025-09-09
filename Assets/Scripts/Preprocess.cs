@@ -12,10 +12,14 @@ public class Preprocess : MonoBehaviour
     [SerializeField] 
     private ComputeShader calculateDftShader;
     [SerializeField] 
+    private ComputeShader calculateIftShader;
+    
+    [SerializeField] 
     private Showcase showcase;
 
     private RenderTexture _basisTexture;
     private RenderTexture _ftTexture;
+    private RenderTexture _iftTexture;
 
     private Texture2D _gaussianNoise;
     
@@ -50,13 +54,23 @@ public class Preprocess : MonoBehaviour
             Process();
             update = false;
         }
+        // DFT
         calculateDftShader.SetFloat("time", Time.time / slowdown);
         calculateDftShader.Dispatch(0, n / 8, 1, n / 8);
-        _material.SetVector("_CameraPosition", Camera.main.transform.position);
-        _material.SetTexture("_FtResult", _ftTexture);
-        
         if (showcase.gameObject.activeSelf)
             showcase.ChangeShowcase(2, "DFT Result", MakePreview(ConvertRenderTexToTex2D(_ftTexture), 256.0f));
+        
+        // IFT
+        calculateIftShader.SetTexture(0, "ft_result", _ftTexture);
+        calculateIftShader.SetTexture(0, "result", _iftTexture);
+        calculateIftShader.Dispatch(0, n / 8, 1, n / 8);
+        if (showcase.gameObject.activeSelf)
+            showcase.ChangeShowcase(3, "IFT", MakePreview(ConvertRenderTexToTex2D(_iftTexture), 256.0f));
+        
+        // Render
+        _material.SetVector("_CameraPosition", Camera.main.transform.position);
+        _material.SetTexture("_BaseMap", _iftTexture);
+        
     }
     
     Texture2D ConvertRenderTexToTex2D(RenderTexture rTex)
@@ -118,15 +132,11 @@ public class Preprocess : MonoBehaviour
 
         GenerateNoise();
 
-        lx = _mesh.bounds.max.x - _mesh.bounds.min.x;
-
-        _material.SetFloat("_Lx", lx);
-        _material.SetFloat("_Lz", lx);
-        _material.SetFloat("_N", n);
-        _material.SetFloat("_M", n);
+        lx = _mesh.bounds.max.x - _mesh.bounds.min.x;;
 
         _ftTexture = CreateRenderTexture(n, n);
         _basisTexture = CreateRenderTexture(n, n);
+        _iftTexture = CreateRenderTexture(n, n);
         
         OnValidate();
     }
@@ -152,6 +162,7 @@ public class Preprocess : MonoBehaviour
         // Recalculate base spectrum
         calculateDftBasisShader.Dispatch(0, n / 8, 1, n / 8);
         showcase.ChangeShowcase(1, "Basis FT", MakePreview(ConvertRenderTexToTex2D(_basisTexture), 256.0f));
+        
     }
 
     private void ConnectShaderParameters()
@@ -175,6 +186,13 @@ public class Preprocess : MonoBehaviour
         calculateDftShader.SetVector("wind_information", windInformation);
         calculateDftShader.SetFloat("l", l);
         calculateDftShader.SetFloat("T", T);
+        
+        // IFT Shader
+        calculateIftShader.SetTexture(0, "ft_result", _ftTexture);
+        calculateIftShader.SetTexture(0, "result", _iftTexture);
+        calculateIftShader.SetFloat("lambda", 0.01f);
+        calculateIftShader.SetFloat("lx", lx);
+        calculateIftShader.SetInt("n", n);
     }
 
     public bool AlmostEqual(float first, float second)
